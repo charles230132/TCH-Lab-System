@@ -1,0 +1,38 @@
+name: 每10天自動更新資料庫
+
+on:
+  schedule:
+    - cron: '0 0 */10 * *' # 每10天執行一次
+  workflow_dispatch:      # 允許手動點擊按鈕測試
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write  # ⭐ 關鍵：給機器人寫入權限
+
+    steps:
+    - name: 下載專案代碼
+      uses: actions/checkout@v3
+
+    - name: 設定 Python 環境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: 安裝套件
+      run: |
+        pip install -r requirements.txt
+
+    - name: 執行更新程式
+      run: |
+        python update_db.py
+
+    - name: 將新資料存回 GitHub
+      run: |
+        git config --global user.name "GitHub Action Bot"
+        git config --global user.email "actions@github.com"
+        git add lab_test.db
+        git commit -m "🤖 自動更新資料庫" || exit 0
+        git push
