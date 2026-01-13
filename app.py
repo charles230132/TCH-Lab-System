@@ -287,16 +287,21 @@ def search_data(df: pd.DataFrame, search_term: str) -> pd.DataFrame:
     """執行搜尋並處理數據"""
     safe_term = re.escape(search_term.strip())
     
-    # 建立搜尋遮罩 - 增加對欄位_3 (組套細項) 的搜尋
+    # 建立搜尋遮罩
     mask_code = df['欄位_0'].astype(str).str.contains(safe_term, case=False, na=False)
     mask_zh = df['欄位_1'].astype(str).str.contains(safe_term, case=False, na=False)
     
-    # 英文名稱使用字邊界匹配
+    # 英文名稱使用字邊界匹配（但要允許短縮寫）
     regex_pattern = f"(?<![a-zA-Z]){safe_term}(?![a-zA-Z])"
     mask_en = df['欄位_2'].astype(str).str.contains(regex_pattern, case=False, regex=True, na=False)
     
-    # 新增：搜尋組套細項（欄位_3）
+    # 搜尋組套細項（欄位_3）
     mask_sub = df['欄位_3'].astype(str).str.contains(regex_pattern, case=False, regex=True, na=False)
+    
+    # 對於短縮寫（2-3個字母），使用精確匹配
+    if len(safe_term) <= 3 and safe_term.isalpha():
+        mask_en_exact = df['欄位_2'].astype(str).str.contains(f"^{safe_term}$|\\s{safe_term}$|\\s{safe_term}\\s", case=False, regex=True, na=False)
+        mask_en = mask_en | mask_en_exact
     
     mask = mask_code | mask_zh | mask_en | mask_sub
     return df[mask].copy()
