@@ -429,21 +429,23 @@ def main():
     # 顯示結果
     st.success(f"✅ 找到 {len(final_df)} 筆結果")
     
-    st.dataframe(
-        final_df,
-        use_container_width=True,
-        hide_index=True,
-        height=600,  # 增加表格高度
-        column_config={
-            "健保代碼": st.column_config.TextColumn("健保代碼", width=80),
-            "中文名稱": st.column_config.TextColumn("中文名稱", width=120),
-            "英文名稱": st.column_config.TextColumn("英文名稱", width=150),
-            "組套細項": st.column_config.TextColumn("組套細項", width=100),
-            "年齡": st.column_config.TextColumn("年齡", width=80),
-            "參考值": st.column_config.TextColumn("參考值", width=150),
-            "臨床意義": st.column_config.TextColumn("臨床意義", width=500),  # 加大寬度
-        }
-    )
+    # 改為卡片式顯示
+    for idx, row in final_df.iterrows():
+        with st.expander(f"📋 {row['中文名稱']} ({row['英文名稱']}) - {row['健保代碼']}", expanded=False):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown(f"**健保代碼：** {row['健保代碼']}")
+                st.markdown(f"**中文名稱：** {row['中文名稱']}")
+                st.markdown(f"**英文名稱：** {row['英文名稱']}")
+                st.markdown(f"**組套細項：** {row['組套細項']}")
+            
+            with col2:
+                st.markdown(f"**年齡：** {row['年齡']}")
+                st.markdown(f"**參考值：** {row['參考值']}")
+            
+            st.markdown("---")
+            st.markdown(f"**臨床意義：**\n\n{row['臨床意義']}")
 
 if __name__ == "__main__":
     main()
