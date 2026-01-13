@@ -29,20 +29,33 @@ def update_job():
 
     all_data = []
     
-    # 解析 (鎖定第 69 頁後)
+    # 解析第 68-101 頁（索引 67-100）
     try:
         with pdfplumber.open(pdf_filename) as pdf:
-            start_page_index = 68 
+            start_page_index = 67  # 第 68 頁
+            end_page_index = 101   # 第 101 頁
             total_pages = len(pdf.pages)
+            
+            print(f"📄 PDF 總頁數: {total_pages}")
+            print(f"📖 解析範圍: 第 68-101 頁 (索引 {start_page_index}-{end_page_index})")
+            
             if start_page_index < total_pages:
-                target_pages = pdf.pages[start_page_index:]
-                for page in target_pages:
+                # 取得指定頁面範圍
+                target_pages = pdf.pages[start_page_index:min(end_page_index + 1, total_pages)]
+                print(f"✓ 實際解析頁數: {len(target_pages)}")
+                
+                for idx, page in enumerate(target_pages, start=start_page_index + 1):
                     tables = page.extract_tables()
-                    for table in tables:
-                        if not table: continue
-                        for row in table:
-                            clean_row = [str(cell).strip() if cell is not None else "" for cell in row]
-                            all_data.append(clean_row)
+                    if tables:
+                        for table in tables:
+                            if not table: 
+                                continue
+                            for row in table:
+                                clean_row = [str(cell).strip() if cell is not None else "" for cell in row]
+                                all_data.append(clean_row)
+                        print(f"  ✓ 第 {idx + 1} 頁: 解析成功")
+                    else:
+                        print(f"  ⚠ 第 {idx + 1} 頁: 無表格")
     except Exception as e:
         print(f"❌ 解析錯誤: {e}")
         return
