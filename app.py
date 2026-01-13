@@ -139,6 +139,21 @@ def load_data() -> pd.DataFrame:
         st.error(f"❌ 資料庫載入失敗: {e}")
         return pd.DataFrame()
 
+def get_db_last_update() -> str:
+    """取得資料庫最後更新時間"""
+    try:
+        import os
+        if os.path.exists(DB_FILE):
+            # 取得檔案修改時間
+            mod_time = os.path.getmtime(DB_FILE)
+            from datetime import datetime
+            update_time = datetime.fromtimestamp(mod_time)
+            return update_time.strftime("%Y年%m月%d日 %H:%M:%S")
+        else:
+            return "尚未建立"
+    except Exception as e:
+        return f"無法取得 ({e})"
+
 # ==================== 輔助函數 ====================
 def is_valid_value(value: str) -> bool:
     """檢查值是否有效"""
@@ -391,6 +406,10 @@ def main():
     if df.empty:
         st.error("❌ 資料庫是空的，請先執行 update_db.py")
         return
+    
+    # 顯示資料庫最後更新時間
+    last_update = get_db_last_update()
+    st.info(f"📅 資料庫最後更新時間：{last_update}")
     
     # 搜尋介面
     search_term = st.text_input(
