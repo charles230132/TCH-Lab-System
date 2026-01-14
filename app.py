@@ -37,19 +37,16 @@ DISCLAIMER = """
 # ==================== CSS 樣式 ====================
 st.markdown("""
 <style>
-    /* 隱藏頁首和頁尾 */
     [data-testid="stHeader"], footer { 
         visibility: hidden; 
     }
     
-    /* 表格樣式優化 */
     div[data-testid="stTable"] {
         font-size: 1rem;
         overflow: visible !important;
         height: auto !important;
     }
     
-    /* 強制換行並優化顯示 */
     div[data-testid="stTable"] td {
         white-space: pre-wrap !important;
         word-wrap: break-word !important;
@@ -66,60 +63,6 @@ st.markdown("""
         padding: 10px !important;
     }
     
-    /* 移除表格底部多餘空白 */
-    div[data-testid="stTable"] table {
-        margin-bottom: 0 !important;
-    }
-    
-    /* 移除空白容器 */
-    div[data-testid="stVerticalBlock"] > div:empty {
-        display: none !important;
-    }
-    
-    /* 自訂 HTML 表格樣式 */
-    .custom-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 1rem;
-        margin-bottom: 0 !important;
-        table-layout: auto;
-    }
-    
-    .custom-table thead {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-    
-    .custom-table th {
-        background-color: #f0f2f6;
-        border: 1px solid #ddd;
-        padding: 10px;
-        text-align: left;
-        font-weight: bold;
-        white-space: nowrap;
-    }
-    
-    .custom-table td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        vertical-align: top;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        line-height: 1.6;
-        max-width: 300px;
-    }
-    
-    .custom-table tbody tr {
-        page-break-inside: avoid;
-    }
-    
-    /* 確保表格後面沒有多餘空間 */
-    .custom-table + * {
-        margin-top: 0 !important;
-    }
-    
-    /* 搜尋框樣式 */
     div[data-testid="stTextInput"] > div > div > input {
         font-size: 1.1rem;
         padding: 0.5rem;
@@ -144,7 +87,6 @@ def get_db_last_update() -> str:
     try:
         import os
         if os.path.exists(DB_FILE):
-            # 取得檔案修改時間
             mod_time = os.path.getmtime(DB_FILE)
             from datetime import datetime
             update_time = datetime.fromtimestamp(mod_time)
@@ -161,10 +103,8 @@ def is_valid_value(value: str) -> bool:
         return False
     if value in HOSPITAL_NAMES:
         return False
-    # 排除純數字（包含小數和百分比）
     if re.match(r'^\d+(\.\d+)?\s*%?$', value):
         return False
-    # 排除單獨的1-2位數字
     if re.match(r'^\d{1,2}$', value):
         return False
     return True
@@ -173,7 +113,6 @@ def is_reference_value(text: str) -> bool:
     """判斷文字是否為參考值格式"""
     if not text:
         return False
-    # 數字開頭或包含單位/符號
     return (re.match(r'^[0-9]', text) or 
             any(indicator in text.lower() for indicator in ['<', '>', 'mg/dl', 'u/l', 'mmol']))
 
@@ -185,67 +124,10 @@ def clean_text(text: str, remove_newlines: bool = True) -> str:
         text = re.sub(r'\s+', ' ', text)
     return text
 
-def extract_sub_item(raw_col3: str) -> str:
-    """提取組套細項"""
-    if not raw_col3 or raw_col3 in INVALID_VALUES:
-        return "無"
-    
-    # 常見的非細項值
-    non_sub_items = ['血清', '血漿', '全血', '尿', 'CSF', '胸水', '腹水']
-    if raw_col3 in non_sub_items:
-        return "無"
-    
-    # 如果是 negative，作為參考值而非細項
-    if raw_col3.lower() == 'negative':
-        return "無"
-    
-    # 過濾 CBC 項目標題（包含「CBC」和「項目」的標題行）
-    if 'CBC' in raw_col3 and '項目' in raw_col3:
-        return None  # 標記為跳過此行
-    
-    # 所有其他情況都視為有效的細項
-    return raw_col3
-
-def extract_reference_value(row: pd.Series) -> str:
-    """提取參考值"""
-    raw_col3 = str(row.get('欄位_3', '')).strip()
-    raw_col5 = str(row.get('欄位_5', '')).strip()
-    raw_col9 = str(row.get('欄位_9', '')).strip()
-    
-    ref_values = []
-    
-    # 檢查 col3
-    if is_reference_value(raw_col3):
-        ref_values.append(raw_col3)
-    elif raw_col3.lower() == 'negative':
-        return "Negative"
-    
-    # 檢查 col5
-    if is_valid_value(raw_col5):
-        ref_values.append(raw_col5)
-    
-    # 檢查 col9（作為備選）
-    if not ref_values and raw_col9 and is_valid_value(raw_col9):
-        ref_values.append(raw_col9)
-    
-    return " | ".join(ref_values) if ref_values else "無"
-
-def extract_age(raw_col4: str) -> str:
-    """提取年齡資訊"""
-    if not raw_col4:
-        return "無"
-    
-    age_indicators = ['歲', '天', 'M', 'F', 'year', 'day', 'month']
-    if any(indicator in raw_col4 for indicator in age_indicators):
-        return raw_col4
-    
-    return "無"
-
 def extract_clinical_notes(row: pd.Series) -> str:
     """提取臨床意義"""
     notes = []
     
-    # 獲取所有 col >= 10 的欄位
     clinical_cols = sorted(
         [c for c in row.index if c.startswith('欄位_') and int(c.split('_')[1]) >= 10],
         key=lambda x: int(x.split('_')[1])
@@ -254,15 +136,12 @@ def extract_clinical_notes(row: pd.Series) -> str:
     for col in clinical_cols:
         val = str(row.get(col, '')).strip()
         
-        # 基本過濾
         if not is_valid_value(val):
             continue
         
-        # 過濾標題行
         if any(keyword in val for keyword in ['臨床意義', '參考值']):
             continue
         
-        # 必須包含中文
         if not re.search(r'[\u4e00-\u9fff]', val):
             continue
         
@@ -272,100 +151,99 @@ def extract_clinical_notes(row: pd.Series) -> str:
 
 def is_garbage_row(clinical_text: str, en_name: str) -> bool:
     """檢查是否為垃圾行"""
-    # D-Dimer 錯位檢查
     if "D-Dimer" in clinical_text and "D-Dimer" not in en_name:
         return True
     
-    # 血型錯位檢查
     if "血型" in clinical_text and not any(word in en_name for word in ["Blood", "Type"]):
         return True
     
     return False
 
-# ==================== 搜尋邏輯 ====================
+# ==================== 搜尋邏輯（改進版）====================
 def search_data(df: pd.DataFrame, search_term: str) -> pd.DataFrame:
-    """執行搜尋並處理數據"""
-    safe_term = re.escape(search_term.strip())
+    """執行搜尋並處理數據 - 改進版支援模糊搜尋"""
     
-    # 建立搜尋遮罩
-    mask_code = df['欄位_0'].astype(str).str.contains(safe_term, case=False, na=False)
-    mask_zh = df['欄位_1'].astype(str).str.contains(safe_term, case=False, na=False)
+    # 清理搜尋詞：移除多餘空白
+    search_term_clean = ' '.join(search_term.strip().split())
     
-    # 英文名稱使用字邊界匹配（但要允許短縮寫）
-    regex_pattern = f"(?<![a-zA-Z]){safe_term}(?![a-zA-Z])"
-    mask_en = df['欄位_2'].astype(str).str.contains(regex_pattern, case=False, regex=True, na=False)
+    # 轉小寫用於不區分大小寫搜尋
+    search_lower = search_term_clean.lower()
     
-    # 搜尋組套細項（欄位_3）
-    mask_sub = df['欄位_3'].astype(str).str.contains(regex_pattern, case=False, regex=True, na=False)
+    # 建立多種搜尋策略
+    masks = []
     
-    # 對於短縮寫（2-3個字母），使用精確匹配
-    if len(safe_term) <= 3 and safe_term.isalpha():
-        mask_en_exact = df['欄位_2'].astype(str).str.contains(f"^{safe_term}$|\\s{safe_term}$|\\s{safe_term}\\s", case=False, regex=True, na=False)
-        mask_en = mask_en | mask_en_exact
+    # 策略1: 直接包含搜尋（不區分大小寫）
+    for col in ['欄位_0', '欄位_1', '欄位_2', '欄位_3']:
+        mask = df[col].astype(str).str.lower().str.contains(search_lower, case=False, na=False, regex=False)
+        masks.append(mask)
     
-    mask = mask_code | mask_zh | mask_en | mask_sub
-    return df[mask].copy()
+    # 策略2: 如果搜尋詞包含空格，也搜尋去除空格的版本
+    if ' ' in search_term_clean:
+        search_no_space = search_term_clean.replace(' ', '').lower()
+        for col in ['欄位_0', '欄位_1', '欄位_2', '欄位_3']:
+            mask = df[col].astype(str).str.lower().str.replace(' ', '').str.contains(search_no_space, case=False, na=False, regex=False)
+            masks.append(mask)
+    
+    # 策略3: 分詞搜尋（所有詞都要出現）
+    words = search_term_clean.lower().split()
+    if len(words) > 1:
+        for col in ['欄位_1', '欄位_2']:  # 只在中英文名稱中使用
+            word_masks = [df[col].astype(str).str.lower().str.contains(word, case=False, na=False, regex=False) for word in words]
+            if word_masks:
+                combined_mask = word_masks[0]
+                for m in word_masks[1:]:
+                    combined_mask = combined_mask & m
+                masks.append(combined_mask)
+    
+    # 合併所有搜尋結果
+    final_mask = masks[0] if masks else pd.Series([False] * len(df))
+    for mask in masks[1:]:
+        final_mask = final_mask | mask
+    
+    return df[final_mask].copy()
 
 def process_row(row: pd.Series) -> Optional[Dict[str, str]]:
     """處理單行數據"""
-    # 基本資料
     code = clean_text(row.get('欄位_0', ''), remove_newlines=True)
     zh_name = clean_text(row.get('欄位_1', ''), remove_newlines=True)
     en_name = clean_text(row.get('欄位_2', ''), remove_newlines=True)
     
-    # 提取原始欄位
     raw_col3 = str(row.get('欄位_3', '')).strip()
     raw_col4 = str(row.get('欄位_4', '')).strip()
     raw_col5 = str(row.get('欄位_5', '')).strip()
     raw_col6 = str(row.get('欄位_6', '')).strip()
     raw_col9 = str(row.get('欄位_9', '')).strip()
     
-    # === 組套細項處理 ===
+    # 組套細項
     sub_item = "無"
-    
-    # 檢查 col3（組套細項通常在這）
     if raw_col3 and raw_col3 not in INVALID_VALUES:
-        # 移除前面的數字編號（如 "3 WBC(10/ul)" -> "WBC(10/ul)"）
         cleaned_col3 = re.sub(r'^\d+\s+', '', raw_col3).strip()
         
-        # 過濾標題行
         if 'CBC' in cleaned_col3 and '項目' in cleaned_col3:
             return None
         
-        # 排除非細項值
         if cleaned_col3 not in ['血清', '血漿', '全血', '尿', 'CSF', '胸水', '腹水', '']:
             if cleaned_col3.lower() != 'negative':
-                # 如果不是參考值格式，就視為細項
                 if not is_reference_value(cleaned_col3):
                     sub_item = cleaned_col3
-                else:
-                    # 如果 col3 是參考值（如 ALT），則細項為「無」，稍後處理參考值
-                    pass
     
-    # === 年齡處理 ===
+    # 年齡
     age = "無"
-    # 年齡通常在 col4，檢查是否包含年齡指標
     if raw_col4 and any(indicator in raw_col4 for indicator in ['歲', '天', 'M', 'F', 'year', 'day', 'month', '~', '天-']):
         age = raw_col4
     
-    # === 參考值處理 ===
+    # 參考值
     ref_value = "無"
-    
-    # 如果 col3 是參考值（如 ALT 的情況）
     if sub_item == "無" and raw_col3 and is_reference_value(raw_col3):
         ref_value = raw_col3
     else:
-        # 否則從 col5 或其他欄位找參考值
-        # 優先順序：col5 > col6 > col9
         candidates = [raw_col5, raw_col6, raw_col9]
-        
         for candidate in candidates:
             if not candidate or candidate in INVALID_VALUES:
                 continue
             if candidate in HOSPITAL_NAMES:
                 continue
             
-            # 檢查是否為參考值格式
             if is_reference_value(candidate) or candidate.lower() in ['negative', 'positive']:
                 if ref_value == "無":
                     ref_value = candidate
@@ -374,14 +252,12 @@ def process_row(row: pd.Series) -> Optional[Dict[str, str]]:
                         ref_value += f" | {candidate}"
                 break
     
-    # === 臨床意義 ===
+    # 臨床意義
     clinical = extract_clinical_notes(row)
     
-    # 垃圾行檢查
     if is_garbage_row(clinical, en_name):
         return None
     
-    # 只過濾完全空白的行
     if sub_item == "無" and age == "無" and ref_value == "無" and clinical == "無":
         return None
     
@@ -399,44 +275,40 @@ def process_row(row: pd.Series) -> Optional[Dict[str, str]]:
 def main():
     st.title("🏥 檢驗項目查詢系統")
     
-    # 顯示免責聲明
     with st.expander("📋 查看免責聲明", expanded=False):
         st.markdown(DISCLAIMER)
     
     st.markdown("---")
     
-    # 載入資料
     df = load_data()
     
     if df.empty:
         st.error("❌ 資料庫是空的，請先執行 update_db.py")
         return
     
-    # 顯示資料庫最後更新時間
     last_update = get_db_last_update()
     st.info(f"📅 資料庫最後更新時間：{last_update}")
     
-    # 搜尋介面
     search_term = st.text_input(
         "🔍 請輸入檢驗代碼或關鍵字：",
         "",
-        placeholder="例如：AST, CBC, WBC, 09026...",
-        help="可搜尋健保代碼、中文名稱、英文名稱或組套細項"
+        placeholder="例如：Total Protein, AFP, 總蛋白, 09026...",
+        help="可搜尋健保代碼、中文名稱、英文名稱或組套細項。支援模糊搜尋。"
     )
     
     if not search_term:
         st.info("💡 請在上方輸入搜尋關鍵字開始查詢")
+        st.info("🔍 搜尋提示：\n- 支援中英文混合搜尋\n- 不區分大小寫\n- 可使用空格分隔多個關鍵字")
         return
     
-    # 執行搜尋
     with st.spinner("🔍 搜尋中..."):
         result_df = search_data(df, search_term)
     
     if result_df.empty:
-        st.warning("⚠️ 查無資料。")
+        st.warning(f"⚠️ 查無「{search_term}」相關資料")
+        st.info("💡 搜尋建議：\n- 檢查是否有拼寫錯誤\n- 嘗試使用部分關鍵字（如：protein, 蛋白）\n- 使用健保代碼搜尋更精確")
         return
     
-    # 處理數據
     display_rows = []
     for _, row in result_df.iterrows():
         processed = process_row(row)
@@ -447,13 +319,10 @@ def main():
         st.warning("⚠️ 查無資料（有效資料過濾後為空）。")
         return
     
-    # 建立最終 DataFrame 並去重
     final_df = pd.DataFrame(display_rows).drop_duplicates()
     
-    # 顯示結果
     st.success(f"✅ 找到 {len(final_df)} 筆結果")
     
-    # 改為卡片式顯示
     for idx, row in final_df.iterrows():
         with st.expander(f"📋 {row['中文名稱']} ({row['英文名稱']}) - {row['健保代碼']}", expanded=False):
             col1, col2 = st.columns(2)
