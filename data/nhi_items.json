@@ -1,0 +1,131 @@
+[
+  {
+    "claim_id": "N01",
+    "quick_id": "ammonia",
+    "code": "09037",
+    "name": "血氨 Ammonia",
+    "page": 12,
+    "aliases": [
+      "血氨",
+      "氨",
+      "Ammonia",
+      "NH3"
+    ]
+  },
+  {
+    "claim_id": "N02",
+    "quick_id": "lactate",
+    "code": "09059",
+    "name": "乳酸 Lactate",
+    "page": 13,
+    "aliases": [
+      "乳酸",
+      "Lactate",
+      "Lactic acid"
+    ]
+  },
+  {
+    "claim_id": "N03",
+    "quick_id": "blood_gas",
+    "code": "09041",
+    "name": "血液氣體分析 Blood Gas Analysis",
+    "page": 13,
+    "aliases": [
+      "血液氣體",
+      "血液氣體分析",
+      "血氣",
+      "Blood gas",
+      "ABG"
+    ]
+  },
+  {
+    "claim_id": "N04",
+    "quick_id": "blood_gas",
+    "code": "09041",
+    "name": "靜脈血液氣體分析 Vein Blood Gas",
+    "page": 13,
+    "aliases": [
+      "血液氣體",
+      "血液氣體分析",
+      "血氣",
+      "Blood gas",
+      "VBG",
+      "靜脈血氣"
+    ]
+  },
+  {
+    "claim_id": "N05",
+    "quick_id": "cbc",
+    "code": "08014",
+    "name": "全套血液檢查（三項）CBC",
+    "page": 14,
+    "aliases": [
+      "CBC",
+      "全套血液檢查",
+      "全血球計數"
+    ]
+  },
+  {
+    "claim_id": "N06",
+    "quick_id": "cbc",
+    "code": "08011",
+    "name": "全套血液檢查-I（八項）CBC-I",
+    "page": 14,
+    "aliases": [
+      "CBC",
+      "CBC-I",
+      "全套血液檢查-I",
+      "全血球計數"
+    ]
+  },
+  {
+    "claim_id": "N07",
+    "quick_id": "coagulation",
+    "code": "08026",
+    "name": "凝血酶原時間 PT",
+    "page": 14,
+    "aliases": [
+      "PT",
+      "凝血",
+      "凝血功能"
+    ]
+  },
+  {
+    "claim_id": "N08",
+    "quick_id": "coagulation",
+    "code": "08036",
+    "name": "部分凝血活酶時間 APTT",
+    "page": 14,
+    "aliases": [
+      "APTT",
+      "aPTT",
+      "凝血",
+      "凝血功能"
+    ]
+  },
+  {
+    "claim_id": "N09",
+    "quick_id": "coagulation",
+    "code": "08079",
+    "name": "D-Dimer",
+    "page": 14,
+    "aliases": [
+      "D-Dimer",
+      "D dimer",
+      "凝血",
+      "凝血功能"
+    ]
+  },
+  {
+    "claim_id": "N10",
+    "quick_id": "blood_culture",
+    "code": "13016",
+    "name": "血瓶培養（血液）Blood culture",
+    "page": 25,
+    "aliases": [
+      "血液培養",
+      "血培",
+      "Blood culture"
+    ]
+  }
+]

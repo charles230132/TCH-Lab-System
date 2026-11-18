@@ -4,11 +4,12 @@ import json
 import fitz
 from streamlit.testing.v1 import AppTest
 
-from manual_search import load_index, search_pages, find_quick_items
+from manual_search import load_index, search_pages, find_quick_items, find_nhi_items, expanded_terms, normalized
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = load_index(ROOT / "data/manual_pages.json")
 QUICK = json.loads((ROOT / "data/quick_items.json").read_text(encoding="utf-8"))
+NHI = json.loads((ROOT / "data/nhi_items.json").read_text(encoding="utf-8"))
 
 
 def test_index_is_the_exact_approved_pdf():
@@ -64,3 +65,46 @@ def test_app_search_and_source_page_render():
     assert any("12 / 105" in x.value for x in app.subheader)
     app.radio[0].set_value("參考值與臨床意義").run()
     assert not app.exception
+
+
+def test_nhi_codes_are_exact_identifiers_and_never_expand_into_other_codes():
+    assert expanded_terms("０８０１４") == ["08014"]
+    for code in ["08014", "08011", "09037", "08026", "08036", "08079"]:
+        hits = search_pages(INDEX, code)
+        assert hits
+        import re
+        for hit in hits:
+            original = re.search(r"(?<!\d)" + code + r"(?!\d)", normalized(hit["text"]))
+            assert original or (hit["match_kind"] == "continuation" and re.search(r"(?<!\d)" + code + r"(?!\d)", normalized(" ".join(hit.get("topics", [])))))
+    sample = [{"page": 1, "category": "collection", "text": "08011 CBC-I", "section": "CBC"},
+              {"page": 2, "category": "collection", "text": "1080140", "section": "Other"}]
+    assert search_pages(sample, "08014") == []
+    assert {x["code"] for x in find_nhi_items(NHI, "０８０１１")} == {"08011"}
+    assert {x["code"] for x in find_nhi_items(NHI, "PT")} == {"08026"}
+    cbc = find_nhi_items(NHI, "CBC")
+    assert {x["code"] for x in cbc} == {"08014", "08011"}
+    assert len(find_nhi_items(NHI, "09041")) == 2  # Same code, different source rows.
+
+
+def test_nhi_mappings_are_verified_and_bound_to_the_source_manifest():
+    manifest = json.loads((ROOT / "data/source_manifest.json").read_text(encoding="utf-8"))
+    assert hashlib.sha256((ROOT / "data/nhi_items.json").read_bytes()).hexdigest() == manifest["nhi_sha256"]
+    claims = json.loads((ROOT / "data/verified_claims.json").read_text(encoding="utf-8"))
+    assert len(NHI) == 10
+    for item in NHI:
+        assert item["claim_id"] in claims
+        assert item["code"] in claims[item["claim_id"]]["quote"]
+        assert str(item["page"]) == str(claims[item["claim_id"]]["page"])
+
+
+def test_nhi_lookup_ui_opens_the_correct_original_page():
+    app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
+    app.radio[0].set_value("健保碼查詢").run()
+    app.text_input[0].set_value("０８０１１").run()
+    assert not app.exception
+    texts = [x.value for x in app.markdown]
+    assert any("08011" in value and "CBC-I" in value for value in texts)
+    assert not any("08014" in value for value in texts)
+    app.button(key="nhi_N06").click().run()
+    assert not app.exception
+    assert any("14 / 105" in x.value for x in app.subheader)

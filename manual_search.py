@@ -26,6 +26,9 @@ def expanded_terms(query):
     term = normalized(query)
     if not term:
         return []
+    # A code is an identifier: do not expand 08014 into the different 08011 code.
+    if term.isdigit():
+        return [term]
     for group in ALIASES:
         if term in [normalized(x) for x in group]:
             # A one-character synonym such as 氨 should resolve to the item,
@@ -53,9 +56,18 @@ def search_pages(index, query, category=None):
         original_text = row["text"]
         text = original_text + "\n" + "\n".join(row.get("topics", []))
         clean = normalized(text)
+        original_clean = normalized(original_text)
         matched = []
+        continuation = False
         for term in terms:
-            if len(term) <= 3 and term.isascii() and term.isalpha():
+            if term.isdigit():
+                pattern = r"(?<!\d)" + re.escape(term) + r"(?!\d)"
+                if re.search(pattern, original_clean):
+                    matched.append(term)
+                elif re.search(pattern, normalized("\n".join(row.get("topics", [])))):
+                    matched.append(term)
+                    continuation = True
+            elif len(term) <= 3 and term.isascii() and term.isalpha():
                 if re.search(r"(?<![a-z])" + re.escape(term) + r"(?![a-z])", unicodedata.normalize("NFKC", text).casefold()):
                     matched.append(term)
             elif term in clean:
@@ -66,7 +78,7 @@ def search_pages(index, query, category=None):
         start = next((i for i, line in enumerate(lines) if any(t in normalized(line) for t in matched)), None)
         snippet = "　".join(lines[start:start + 7])[:240] if start is not None else "此頁含前頁延續的項目資料，請開啟原表查看完整適用條件。"
         score = (100 if exact in clean else 0) + (25 if row["category"] == "collection" else 0) + len(matched)
-        hits.append({**row, "snippet": snippet, "score": score})
+        hits.append({**row, "snippet": snippet, "score": score, "match_kind": "continuation" if continuation else "original"})
     return sorted(hits, key=lambda x: (-x["score"], x["page"]))
 
 
@@ -75,3 +87,23 @@ def find_quick_items(items, query):
     if not term:
         return []
     return [x for x in items if term in [normalized(a) for a in x["aliases"]] or (len(term) > 2 and term in normalized(x["title"]))]
+
+
+def find_nhi_items(items, query):
+    """Verified common-item mappings; preserve repeated codes and leading zeroes."""
+    term = normalized(query)
+    if not term:
+        return []
+    if term.isdigit():
+        return [item for item in items if item["code"] == term]
+    matches = []
+    for item in items:
+        aliases = [normalized(a) for a in item.get("aliases", [])]
+        name = normalized(item["name"])
+        if term in aliases or term == name:
+            matches.append(item)
+        elif len(term) >= 2 and not term.isascii() and term in name:
+            matches.append(item)
+        elif len(term) > 3 and term.isascii() and term in name:
+            matches.append(item)
+    return matches

@@ -6,10 +6,11 @@ import json
 import fitz
 import streamlit as st
 
-from manual_search import load_index, search_pages, find_quick_items
+from manual_search import load_index, search_pages, find_quick_items, find_nhi_items, normalized
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
+APP_VERSION = "115-NHI-20261118"
 st.set_page_config(page_title="陽明院區檢驗科｜採檢查詢", page_icon="🔬", layout="wide")
 
 
@@ -25,7 +26,11 @@ def get_data(source_revision: str):
     if len(index) != manifest["pages"]:
         raise ValueError("Source page count mismatch")
     quick = json.loads((DATA / "quick_items.json").read_text(encoding="utf-8"))
-    return manifest, pdf, index, quick
+    nhi_bytes = (DATA / "nhi_items.json").read_bytes()
+    if hashlib.sha256(nhi_bytes).hexdigest() != manifest["nhi_sha256"]:
+        raise ValueError("NHI code mappings do not match the pinned manifest")
+    nhi = json.loads(nhi_bytes)
+    return manifest, pdf, index, quick, nhi
 
 
 @st.cache_data(show_spinner=False, max_entries=16)
@@ -85,7 +90,7 @@ def show_source(pdf_bytes, index, manifest, context):
 def main():
     try:
         revision = hashlib.sha256((DATA / "source_manifest.json").read_bytes()).hexdigest()
-        manifest, pdf_bytes, index, quick = get_data(revision)
+        manifest, pdf_bytes, index, quick, nhi = get_data(revision)
     except (OSError, ValueError, KeyError):
         st.error("查詢資料暫時無法載入，請聯絡檢驗科。")
         return
@@ -96,13 +101,28 @@ def main():
         st.session_state["search_query"] = str(st.query_params.get("q", ""))[:200]
     st.text_input("檢驗項目、英文縮寫或健保代碼", key="search_query", placeholder="例如：血氨、Ammonia、乳酸、CBC、09037", on_change=update_query, max_chars=200)
     st.pills("ICU常用項目", ["血液培養", "血液氣體", "血氨", "乳酸", "CBC", "凝血"], key="quick_choice", on_change=choose_shortcut)
-    mode = st.radio("查詢範圍", ["採檢快查", "參考值與臨床意義", "手冊全文"], horizontal=True)
+    mode = st.radio("查詢範圍", ["採檢快查", "健保碼查詢", "參考值與臨床意義", "手冊全文"], horizontal=True)
     query = st.session_state["search_query"].strip()
     if query:
+        if mode in ("採檢快查", "健保碼查詢"):
+            code_matches = find_nhi_items(nhi, query)
+            if code_matches:
+                st.subheader("健保碼對照（手冊表列）")
+                st.caption("同一健保碼可能對應不同檢體或項目；請連同完整名稱與來源原表核對。")
+                for entry in code_matches:
+                    st.markdown(f"**`{entry['code']}`　{entry['name']}**")
+                    context = f"nhi_{entry['claim_id']}"
+                    st.button(f"核對健保碼原表・第 {entry['page']} 頁", key=context, on_click=open_page, args=(entry["page"], context))
+                    show_source(pdf_bytes, index, manifest, context)
+            elif mode == "健保碼查詢":
+                st.info("常用項目提供健保碼直接對照；其他項目可在下方搜尋手冊原表。請輸入完整代碼，並保留開頭的0。")
         items = find_quick_items(quick, query) if mode == "採檢快查" else []
         for item in items:
             with st.container(border=True):
                 st.subheader(item["title"])
+                item_codes = list(dict.fromkeys(entry["code"] for entry in nhi if entry["quick_id"] == item["id"] and (not normalized(query).isdigit() or entry["code"] == normalized(query))))
+                if item_codes:
+                    st.caption("健保碼（手冊表列）：" + "、".join(item_codes))
                 if item.get("notice"):
                     st.info(item["notice"])
                 left, right = st.columns(2)
@@ -124,6 +144,8 @@ def main():
         category = "reference" if mode == "參考值與臨床意義" else None
         results = search_pages(index, query, category=category)
         st.subheader("手冊原文")
+        if normalized(query).isdigit():
+            st.caption(f"健保碼 {normalized(query)}：依完整代碼查詢；沿用前頁項目的續表會另行標示。")
         if mode == "參考值與臨床意義":
             st.caption("保留原表的年齡、性別、院區、單位及合併儲存格；不把量測不確定度當成參考值。")
         if not results:
@@ -134,7 +156,8 @@ def main():
             batch = st.selectbox("搜尋結果頁", range(1, batches + 1), format_func=lambda x: f"第 {x} / {batches} 組", key=f"batch_{mode}_{query}") if batches > 1 else 1
             for hit in results[(batch - 1) * 8:batch * 8]:
                 with st.container(border=True):
-                    st.markdown(f"**第 {hit['page']} 頁　{hit['section']}**")
+                    continuation_label = "（續表）" if hit.get("match_kind") == "continuation" else ""
+                    st.markdown(f"**第 {hit['page']} 頁　{hit['section']}{continuation_label}**")
                     if hit["category"] == "reference":
                         st.write("參考值、適用族群與臨床意義請查看本頁原表；檢驗效能與量測不確定度另列，不與參考值合併。")
                     else:
@@ -143,7 +166,7 @@ def main():
                     st.button("開啟這一頁原文", key=context, on_click=open_page, args=(hit["page"], context))
                     show_source(pdf_bytes, index, manifest, context)
     else:
-        st.info("輸入關鍵字，或選上方的ICU常用項目。採檢快查可查看容器與送檢提醒；參考值請對照原表的適用條件。")
+        st.info("輸入檢驗名稱或完整健保碼，或選上方的ICU常用項目。健保碼請保留開頭的0；採檢快查可查看容器與送檢提醒。")
     st.divider()
     with st.expander("手冊版本、資料來源與使用說明"):
         st.write("服務單位：臺北市立聯合醫院陽明院區檢驗科")
@@ -155,6 +178,7 @@ def main():
         st.download_button("下載完整採檢手冊PDF", pdf_bytes, file_name=manifest["source_name"], mime="application/pdf")
         st.caption("請勿在搜尋欄輸入病人姓名、病歷號碼或其他個人資料。")
     st.caption("陽明院區檢驗科　｜　採檢規定如有疑義，請先與檢驗科確認。")
+    st.caption(f"網站版本：健保碼查詢版　{APP_VERSION}")
 
 
 if __name__ == "__main__":

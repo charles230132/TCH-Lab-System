@@ -124,7 +124,10 @@
       "APTT",
       "aPTT",
       "D-Dimer",
-      "D dimer"
+      "D dimer",
+      "08026",
+      "08036",
+      "08079"
     ],
     "container": "Sodium citrate藍頭管",
     "amount": "採至黑線；提供手冊的規格為1.8 mL",

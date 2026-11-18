@@ -208,5 +208,65 @@
     "page": "1",
     "quote": "CDC Division of Laboratory Systems\nPreventing Adult Blood Culture Contamination:\nA Quality Tool for Clinical Laboratory Professionals \nProtect Patients during the Diagnostic Process by Monitoring Adult Blood Culture \nContamination (BCC) Rates\nLaboratory analysis of blood cultures is vital to the accurate and timely diagnosis of bloodstream infections. However, \nthe reliability of your testing depends on clinical compliance with collection procedures that limit the risk of \ninconclusive or incorrect results. False negative blood culture results due to inadequate volumes of blood can result in \nmisdiagnosis, delay therapy, and put patients at heightened risk of morbidity and mortality from bacteremia. Likewise, \nthe presence of commonly occurring bacteria or fungi on human skin (i.e., commensal organisms) can increase the risk \nof false positives, compromising care by leading to unnecessary antibiotic therapy and prolonged hospitalization.  \nIn December 2022, a Centers for Medicare & Medicaid Services (CMS) Consensus-Based Entity (CBE) endorsed a CDC \nproposal for a new patient safety measure to address these concerns (see Quality Measures | CMS for more on this \ntopic).  CDC developed this quality measure to promote blood culture best practices and improve the laboratory \ndiagnosis of bloodstream infection. \nThe Clinical Laboratory Improvement Amendments of 1988 (CLIA) state that laboratories must monitor, assess, and \nwhen indicated, correct problems identified in their preanalytic systems. Using the methods provided in this quality \ntool to calculate the BCC and single-set rates will help meet this standard and ensure optimal blood culture collection. \nIn addition, this quality measure incorporates best practices on blood culture collection from the Clinical & Laboratory \nStandards Institute (CLSI) and the Infectious Disease Society of America (IDSA). These best practices are already in \nplace at many laboratories across the nation and have shown to improve the laboratory diagnosis of bacteremia, \nsignificantly reduce incidence of BCC, and limit unnecessary antibiotic therapy. CDC strongly encourages you to \nadopt these practices into your laboratory’s standard operating procedures (SOPs), to integrate this measure into your \nquality management system, and to work with infection control and antibiotic stewardship programs to educate and \ntrain clinical staff on their use.\nFollow CLIA Regulations\n“Laboratory Requirements,” Code of Federal Regulations, Title 32 (2023): Chapter IV, Part 493 \nSubpart K – Quality System for Non-Waived Testing – § 493.1249 Standard: Preanalytic systems quality assessment.\nThe laboratory must establish and follow written policies and procedures for an ongoing mechanism to monitor, assess, and when indicated, \ncorrect problems identified in the preanalytic systems specified at §§ 493.1241 through 493.1242.\nCollecting Adult Blood Culture Sets\nA blood culture set from an adult patient should consist of 20–30 mL of blood collected through venipuncture. This \nmay require more than two bottles, depending on the blood culture system and the institutional policy. \nCollect Multiple Sets to Achieve the Optimal Volume\nThe volume of blood collected is critically important to the laboratory diagnosis of bloodstream infection, which \ngenerally requires two or more sets to achieve. In addition, two sets are required to determine whether the presence \nof a commensal organism can be classified as a possible contaminant. \nTo achieve an optimal volume, the blood culture collection standard of practice is to collect two to four blood culture \nsets from adult patients with a suspected blood stream infection in the evaluation of each septic episode (i.e., 24 \nhours). Your hospital or clinical setting should instruct healthcare staff to collect at least two blood culture sets (total \nvolume of 40–60 mL) within a 24-hour period by peripheral venipuncture prior to antibiotic administration, if possible. \nEXCELLENT LABORATORIES, OUTSTANDING HEALTH.\nFind this information on our website at https://www.cdc.gov/labquality/tools-and-resources.html \n",
     "reviewer_check": "三重核對通過"
+  },
+  "N01": {
+    "claim": "本手冊表列「血氨 Ammonia」的健保代碼為09037。",
+    "pdf": "manual115.pdf",
+    "page": "12",
+    "quote": "09037 \n血氨 \nAmmonia  \n血漿 \n1.5-3mL \n4 \nLi-Heparin 綠頭管 \n1 小時 \n檢體冰水保存，立即送\n檢 \n24007 \n游離鈣離子  \nfree Ca++ \n全血 \n1.5-3mL \n \n含Heparin 針筒加蓋 \n1 小時 \n \n24007 \n游離鈣離子  \nfree Ca++ \n血清 \n1.5-3mL \n2 \nS"
+  },
+  "N02": {
+    "claim": "本手冊表列「乳酸 Lactate」的健保代碼為09059。",
+    "pdf": "manual115.pdf",
+    "page": "13",
+    "quote": "09059 \n乳酸 \nLactate \n血漿 \n1.5-3mL \n31 \nNaF 灰頭管 \n1 小時 \n檢體冰水保存，立即送\n檢 \n12193 \nN 末端前-B 形利納\n肽 \nNT-ProBNP \n血漿 \n1.5-3mL \n4 \nLi-Heparin 綠頭管 \n1 小時 \n \n10509 \n茶鹼 \nTheophylline \n血漿 \n1.5-3mL \n4 \n"
+  },
+  "N03": {
+    "claim": "本手冊表列「血液氣體分析 Blood Gas Analysis」的健保代碼為09041。",
+    "pdf": "manual115.pdf",
+    "page": "13",
+    "quote": "09041 \n血液氣體分析 \nBlood Gas Analysis \n全血 \n1.5-3mL \n \n含Heparin 針筒加蓋 \n20 分 \n無 \n檢體冰水保存，立即送\n檢 \n09041 \n血液氣體分析(靜\n脈) \nVein Blood Gas  \n全血 \n1.5-3mL \n \n含Heparin 針筒加蓋 \n20 分 \n10804 \n一氧化碳 \nCO-Oxi"
+  },
+  "N04": {
+    "claim": "本手冊表列「靜脈血液氣體分析 Vein Blood Gas」的健保代碼為09041。",
+    "pdf": "manual115.pdf",
+    "page": "13",
+    "quote": "09041 \n血液氣體分析(靜\n脈) \nVein Blood Gas  \n全血 \n1.5-3mL \n \n含Heparin 針筒加蓋 \n20 分 \n10804 \n一氧化碳 \nCO-Oximeter panel  \n全血 \n1.5-3mL \n \n含Heparin 針筒加蓋 \n20 分 \n"
+  },
+  "N05": {
+    "claim": "本手冊表列「全套血液檢查（三項）CBC」的健保代碼為08014。",
+    "pdf": "manual115.pdf",
+    "page": "14",
+    "quote": "08014 \n全套血液檢查 \n(RBC，WBC，Hb 三項) \nCBC \n全血 \n1.5-3mL \n1 \nEDTA 紫頭管 \n當天 \n4 小時內 \n180°上下翻轉採血\n管輕搖混合避免凝\n固 \n \n08011 \n全套血液檢查-I \n(八項) \nCBC-I \n全血 \n1.5-3mL \n1 \nEDTA 紫頭管 \n當天 \n4 小時內 \n08001 \n紅血球計數 \n"
+  },
+  "N06": {
+    "claim": "本手冊表列「全套血液檢查-I（八項）CBC-I」的健保代碼為08011。",
+    "pdf": "manual115.pdf",
+    "page": "14",
+    "quote": "08011 \n全套血液檢查-I \n(八項) \nCBC-I \n全血 \n1.5-3mL \n1 \nEDTA 紫頭管 \n當天 \n4 小時內 \n08001 \n紅血球計數 \nRBC \n全血 \n1.5-3mL \n1 \nEDTA 紫頭管 \n當天 \n4 小時內 \n08002 \n白血球計數 \nWBC \n全血 \n1.5-3mL \n1 \nEDTA 紫頭管 \n當天 \n4 小時內 \n0"
+  },
+  "N07": {
+    "claim": "本手冊表列「凝血酶原時間 PT」的健保代碼為08026。",
+    "pdf": "manual115.pdf",
+    "page": "14",
+    "quote": "08026 \n凝血酶原時間 \nPT  \n血漿 \n至黑線\n(1.8ml) \n5 \nSodium citrate 藍頭\n管 \n當天 \n無 \n180°上下翻轉採血\n管輕搖混合避免凝\n固 \n08036 \n部分凝血活酶時間 \nAPTT \n血漿 \n至黑線\n(1.8ml) \n5 \nSodium citrate 藍頭\n管 \n當天 \n無 \n08079 \nD-Dimer \nD-"
+  },
+  "N08": {
+    "claim": "本手冊表列「部分凝血活酶時間 APTT」的健保代碼為08036。",
+    "pdf": "manual115.pdf",
+    "page": "14",
+    "quote": "08036 \n部分凝血活酶時間 \nAPTT \n血漿 \n至黑線\n(1.8ml) \n5 \nSodium citrate 藍頭\n管 \n當天 \n無 \n08079 \nD-Dimer \nD-Dimer \n血漿 \n至黑線\n(1.8ml) \n5 \nSodium citrate 藍頭\n管 \n當天 \n無 \n08018 \n出血時間(DUKE 氏方\n法) \nBleeding Tim"
+  },
+  "N09": {
+    "claim": "本手冊表列「D-Dimer」的健保代碼為08079。",
+    "pdf": "manual115.pdf",
+    "page": "14",
+    "quote": "08079 \nD-Dimer \nD-Dimer \n血漿 \n至黑線\n(1.8ml) \n5 \nSodium citrate 藍頭\n管 \n當天 \n無 \n08018 \n出血時間(DUKE 氏方\n法) \nBleeding Time 耳朵血 \nNA \n無 \n耳垂穿刺 \n當天 \n無 \n \n08020 \n凝固時間 \nCoagulation \ntime \n刺耳血 \nNA \n無"
+  },
+  "N10": {
+    "claim": "本手冊表列「血瓶培養（血液）Blood culture」的健保代碼為13016。",
+    "pdf": "manual115.pdf",
+    "page": "25",
+    "quote": "13016 血瓶培養（血液） \nBlood culture \n血液 \n成人,大小\n孩: 6-20ml\n嬰\n兒:1-3ml\n（每瓶） \n18/20 \n19(小兒) 血液培養瓶 \n7 天 \n菌株保\n留6 天 \n每位病人至少抽兩套,\n懷疑急性菌血症可在10\n分鐘內由不同部位抽兩\n套 \n13016 血瓶培養（體液） \nBody fluids culture in b"
   }
 }
