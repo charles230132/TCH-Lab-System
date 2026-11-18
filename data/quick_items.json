@@ -1,0 +1,187 @@
+[
+  {
+    "id": "ammonia",
+    "title": "血氨 Ammonia",
+    "aliases": [
+      "血氨",
+      "氨",
+      "Ammonia",
+      "NH3",
+      "09037"
+    ],
+    "container": "Li-Heparin綠頭管",
+    "amount": "依醫令及現用管標示",
+    "facts": [
+      "檢體冰水保存，立即送檢。",
+      "採後輕柔倒轉混合；本手冊綠頭管列5–8次。"
+    ],
+    "pages": [
+      10,
+      12
+    ],
+    "claim_ids": [
+      "C14",
+      "C08"
+    ],
+    "source_label": "115年採檢手冊　第10、12頁",
+    "notice": "",
+    "supplement_url": ""
+  },
+  {
+    "id": "lactate",
+    "title": "乳酸 Lactate",
+    "aliases": [
+      "乳酸",
+      "Lactate",
+      "Lactic acid",
+      "09059"
+    ],
+    "container": "NaF灰頭管",
+    "amount": "依醫令及現用管標示",
+    "facts": [
+      "檢體冰水保存，立即送檢。",
+      "灰頭管添加物為NaF，與EDTA紫頭管不同。"
+    ],
+    "pages": [
+      10,
+      13
+    ],
+    "claim_ids": [
+      "C15",
+      "C07"
+    ],
+    "source_label": "115年採檢手冊　第10、13頁",
+    "notice": "",
+    "supplement_url": ""
+  },
+  {
+    "id": "blood_gas",
+    "title": "血液氣體 Blood gas",
+    "aliases": [
+      "血液氣體",
+      "血液氣體分析",
+      "血氣",
+      "Blood gas",
+      "ABG",
+      "VBG",
+      "09041"
+    ],
+    "container": "含Heparin針筒，加蓋",
+    "amount": "依現用採檢器材標示",
+    "facts": [
+      "隔絕空氣。",
+      "依本手冊冰水保存，立即送檢。",
+      "手冊表列可追加時效為「無」。"
+    ],
+    "pages": [
+      2,
+      13
+    ],
+    "claim_ids": [
+      "C13",
+      "C26"
+    ],
+    "source_label": "115年採檢手冊　第2、13頁",
+    "notice": "",
+    "supplement_url": ""
+  },
+  {
+    "id": "cbc",
+    "title": "全套血液檢查 CBC",
+    "aliases": [
+      "CBC",
+      "全套血液檢查",
+      "全血球計數",
+      "08014",
+      "08011"
+    ],
+    "container": "EDTA紫頭管",
+    "amount": "手冊CBC列全血1.5–3 mL；配合現用管標線",
+    "facts": [
+      "上下翻轉輕搖混合，避免凝固。",
+      "手冊表列可追加時效為4小時內；仍需確認檢體量、品質與保存條件。"
+    ],
+    "pages": [
+      10,
+      14
+    ],
+    "claim_ids": [
+      "C16",
+      "C24",
+      "C08"
+    ],
+    "source_label": "115年採檢手冊　第10、14頁",
+    "notice": "",
+    "supplement_url": ""
+  },
+  {
+    "id": "coagulation",
+    "title": "凝血 PT、APTT、D-Dimer",
+    "aliases": [
+      "凝血",
+      "凝血功能",
+      "PT",
+      "APTT",
+      "aPTT",
+      "D-Dimer",
+      "D dimer"
+    ],
+    "container": "Sodium citrate藍頭管",
+    "amount": "採至黑線；提供手冊的規格為1.8 mL",
+    "facts": [
+      "血液與抗凝劑比例9:1。",
+      "輕柔混合，切忌劇烈搖晃。",
+      "PT、APTT與D-Dimer的可追加時效表列為「無」。"
+    ],
+    "pages": [
+      2,
+      10,
+      14
+    ],
+    "claim_ids": [
+      "C09",
+      "C24",
+      "C27"
+    ],
+    "source_label": "115年採檢手冊　第2、10、14頁",
+    "notice": "不同容量的現用管，請依實際標線及院內核定說明操作。",
+    "supplement_url": ""
+  },
+  {
+    "id": "blood_culture",
+    "title": "成人血液培養 Blood culture",
+    "aliases": [
+      "血液培養",
+      "血培",
+      "Blood culture",
+      "13016"
+    ],
+    "container": "依醫令選擇嗜氧／厭氧血液培養瓶",
+    "amount": "CDC採集範例：每瓶10 mL、兩瓶一套20 mL",
+    "facts": [
+      "空針採血：先厭氧，再嗜氧；真空採血：先嗜氧，再厭氧。",
+      "皮膚消毒選適合消毒劑並待乾；除特殊禁忌外，最後不需拭去。",
+      "瓶口依手冊以75%酒精棉片擦拭後待乾。",
+      "CDC範例兩套合計40 mL；總量應依血培系統、臨床情況及現用血瓶容量確認。"
+    ],
+    "pages": [
+      4,
+      5,
+      6,
+      11,
+      25
+    ],
+    "claim_ids": [
+      "C10",
+      "C11",
+      "C12",
+      "C23",
+      "BC01",
+      "BC02",
+      "BC03"
+    ],
+    "source_label": "115年採檢手冊　第4、5、6、11、25頁；CDC指引補充",
+    "notice": "血量為CDC外部指引補充。手冊第4與25頁的每次／每瓶標示不一致；此處不是陽明院區已核定的固定血量，勿超過現用瓶標示容量。",
+    "supplement_url": "https://www.cdc.gov/lab-quality/media/pdfs/2025/04/DLS_BCConepager_20250416_508c.pdf"
+  }
+]

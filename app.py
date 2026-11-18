@@ -1,323 +1,161 @@
+"""Yangming laboratory lookup backed by a versioned source PDF."""
+from pathlib import Path
+import hashlib
+import json
+
+import fitz
 import streamlit as st
-import pandas as pd
-import sqlite3
-import re
-from typing import List, Dict, Optional
 
-# ==================== 配置 ====================
-DB_FILE = "lab_test.db"
-CACHE_TTL = 600
+from manual_search import load_index, search_pages, find_quick_items
 
-# 無效值集合
-INVALID_VALUES = {'無', 'None', 'nan', 'null', '', '*'}
-HOSPITAL_NAMES = {'忠孝', '仁愛', '和平', '陽明', '中興', '松德', '林森', '婦幼'}
+ROOT = Path(__file__).resolve().parent
+DATA = ROOT / "data"
+st.set_page_config(page_title="陽明院區檢驗科｜採檢查詢", page_icon="🔬", layout="wide")
 
-# ==================== 網頁設定 ====================
-st.set_page_config(
-    page_title="TCH 檢驗查詢", 
-    page_icon="🏥", 
-    layout="wide"
-)
 
-# ==================== 免責聲明 ====================
-DISCLAIMER = """
-⚠️ **免責聲明**
+@st.cache_data(show_spinner=False)
+def get_data(source_revision: str):
+    manifest = json.loads((DATA / "source_manifest.json").read_text(encoding="utf-8"))
+    pdf = (DATA / manifest["file"]).read_bytes()
+    if hashlib.sha256(pdf).hexdigest() != manifest["sha256"]:
+        raise ValueError("Source PDF does not match the pinned manifest")
+    index = load_index(DATA / "manual_pages.json")
+    if hashlib.sha256((DATA / "manual_pages.json").read_bytes()).hexdigest() != manifest["index_sha256"]:
+        raise ValueError("Index does not match the pinned manifest")
+    if len(index) != manifest["pages"]:
+        raise ValueError("Source page count mismatch")
+    quick = json.loads((DATA / "quick_items.json").read_text(encoding="utf-8"))
+    return manifest, pdf, index, quick
 
-本應用系統僅供參考之用，不構成任何醫療建議。使用者因使用本系統所產生的任何損害、損失或傷害，本應用開發者不承擔任何責任。
 
-- 本系統提供的檢驗資料來源於資料庫，可能存在誤差或延遲
-- 檢驗結果的解釋需由合格的醫療專業人士進行評估
-- 患者應就醫療相關問題咨詢其主治醫生或專科醫生
-- 任何醫療決定應基於全面的臨床評估，而不應僅依賴本系統
-- 本應用不對資料的準確性、完整性或及時性做出任何保證
+@st.cache_data(show_spinner=False, max_entries=16)
+def page_image(pdf_bytes: bytes, page: int):
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+        return doc[page - 1].get_pixmap(matrix=fitz.Matrix(1.65, 1.65)).tobytes("png")
 
-使用本系統即表示您已同意上述免責聲明。
-"""
 
-# ==================== CSS 樣式 (極致高對比 + 精準搜尋 + 預設收合版) ====================
-st.markdown("""
-<style>
-    /* --- 全域設定 --- */
-    html, body, [class*="css"] {
-        font-size: 22px !important; /* 基礎字級加大 */
-        font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
-        background-color: #1a1a1a !important;
-        color: #FFFFFF !important;
-    }
+@st.cache_data(show_spinner=False, max_entries=16)
+def one_page_pdf(pdf_bytes: bytes, page: int):
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as source, fitz.open() as target:
+        target.insert_pdf(source, from_page=page - 1, to_page=page - 1)
+        return target.tobytes()
 
-    [data-testid="stHeader"], footer { visibility: hidden; }
 
-    .stApp {
-        background-color: #1a1a1a !important;
-    }
-    
-    /* --- 標題優化 --- */
-    h1 { 
-        font-size: 3rem !important; 
-        color: #FFFFFF !important; 
-        font-weight: 800 !important;
-        background-color: transparent !important;
-    }
-    h2 { 
-        font-size: 2.4rem !important; 
-        color: #FFFFFF !important; 
-        font-weight: 800 !important;
-        background-color: transparent !important;
-    }
-    h3, h4, h5, h6 { 
-        color: #FFFFFF !important;
-        background-color: transparent !important;
-    }
-    
-    .stMarkdown p, .stMarkdown li, .stMarkdown div {
-        font-size: 1.3rem !important;
-        color: #FFFFFF !important; /* 白色字體 */
-        line-height: 1.6 !important;
-        background-color: transparent !important;
-    }
+def choose_query(value):
+    st.session_state["search_query"] = value
+    st.session_state.pop("open_page", None)
+    st.query_params["q"] = value
 
-    /* --- 搜尋框 (極致顯眼) --- */
-    div[data-testid="stTextInput"] label {
-        font-size: 1.6rem !important;
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-        background-color: transparent !important;
-    }
-    div[data-testid="stTextInput"] input {
-        font-size: 1.8rem !important;
-        color: #000000 !important;
-        background-color: #FFFFFF !important; /* 白底輸入框 */
-        border: 3px solid #0088FF !important;
-    }
-    
-    /* --- Expander (摺疊卡片) 樣式核心 --- */
-    /* 卡片標題頭：未展開時 */
-    .streamlit-expanderHeader {
-        background-color: #2a2a2a !important; /* 深灰底 */
-        border: 2px solid #0088FF !important;
-        border-radius: 8px !important;
-        padding: 15px !important;
-        margin-top: 10px !important;
-    }
-    
-    /* 針對標題內的文字強制白色加粗 (確保看得很清楚) */
-    .streamlit-expanderHeader p, 
-    .streamlit-expanderHeader span,
-    .streamlit-expanderHeader div {
-        font-size: 1.5rem !important;
-        font-weight: 900 !important; /* 極粗體 */
-        color: #FFFFFF !important;   /* 白色 */
-    }
-    
-    /* 滑鼠滑過時的效果 */
-    .streamlit-expanderHeader:hover {
-        background-color: #3a3a3a !important;
-        border-color: #00CCFF !important;
-    }
 
-    /* 展開後的內容區塊 */
-    .streamlit-expanderContent {
-        background-color: #1a1a1a !important;
-        border: 2px solid #0088FF;
-        border-top: none;
-        padding: 20px !important;
-        color: #FFFFFF !important;
-    }
-    
-    /* --- 表格內容 --- */
-    div[data-testid="stTable"] td {
-        font-size: 1.2rem !important;
-        color: #FFFFFF !important;
-    }
+def update_query():
+    st.query_params["q"] = st.session_state["search_query"].strip()
+    st.session_state.pop("open_page", None)
+    st.session_state["quick_choice"] = None
 
-    /* 錯誤與提示訊息 */
-    div[data-testid="stAlert"] {
-        font-size: 1.4rem !important;
-        font-weight: bold !important;
-        color: #FFFFFF !important;
-    }
-    
-    /* 確保所有 markdown 內容文字可見 */
-    .stMarkdown * {
-        background-color: transparent !important;
-    }
-    
-    /* Columns 和其他容器 */
-    .stColumn {
-        background-color: transparent !important;
-    }
-</style>
-""", unsafe_allow_html=True)
 
-# ==================== 資料庫操作 ====================
-@st.cache_data(ttl=CACHE_TTL)
-def load_data() -> pd.DataFrame:
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            df = pd.read_sql("SELECT * FROM tests", conn)
-            for col in df.columns:
-                df[col] = df[col].astype(str).str.replace('\n', ' ').str.replace(r'\s+', ' ', regex=True)
-            return df.fillna("")
-    except Exception as e:
-        st.error(f"❌ 資料庫載入失敗: {e}")
-        return pd.DataFrame()
+def choose_shortcut():
+    selected = st.session_state.get("quick_choice")
+    if selected:
+        choose_query(selected)
 
-def get_db_last_update() -> str:
-    try:
-        import os
-        if os.path.exists(DB_FILE):
-            mod_time = os.path.getmtime(DB_FILE)
-            from datetime import datetime
-            return datetime.fromtimestamp(mod_time).strftime("%Y年%m月%d日 %H:%M:%S")
-        else:
-            return "尚未建立"
-    except:
-        return "未知"
 
-# ==================== 輔助函數 ====================
-def is_valid_value(value: str) -> bool:
-    if not value or value.lower() in INVALID_VALUES: return False
-    if value in HOSPITAL_NAMES: return False
-    return True
+def open_page(page, context):
+    st.session_state["open_page"] = page
+    st.session_state["open_context"] = context
 
-def clean_text(text: str) -> str:
-    return str(text).strip().replace('\n', ' ').replace('  ', ' ')
 
-def extract_clinical_notes(row: pd.Series) -> str:
-    notes = []
-    all_cols = row.index.tolist()
-    start_idx = 7
-    if len(all_cols) > start_idx:
-        potential_cols = all_cols[start_idx:]
-        for col in potential_cols:
-            val = str(row.get(col, '')).strip()
-            if not is_valid_value(val): continue
-            if len(val) < 2: continue
-            if any(k in val for k in ['臨床意義', '參考值']): continue
-            if re.search(r'[\u4e00-\u9fff]', val) or len(val) > 20:
-                notes.append(val)
-    return "\n".join(notes) if notes else "無"
+def source_buttons(pages, prefix):
+    for page in pages:
+        st.button(f"查看手冊第 {page} 頁", key=f"{prefix}_p{page}", on_click=open_page, args=(page, f"quick_{prefix}"))
 
-# ==================== 搜尋邏輯 (精準修正版) ====================
-def search_data(df: pd.DataFrame, search_term: str) -> pd.DataFrame:
-    """
-    搜尋邏輯修正：限制搜尋範圍以減少雜訊
-    """
-    if df.empty: return df
-    
-    search_term = search_term.strip()
-    search_lower = search_term.lower()
-    search_no_space = search_term.replace(' ', '').lower()
-    
-    target_cols = ['欄位_0', '欄位_1', '欄位_2', '欄位_3']
-    valid_cols = [c for c in target_cols if c in df.columns]
-    
-    if not valid_cols: return df 
 
-    subset = df[valid_cols].astype(str).apply(lambda x: ' '.join(x), axis=1).str.lower()
-    mask = subset.str.contains(search_lower, case=False, regex=False)
-    
-    if ' ' in search_term:
-        mask = mask | subset.str.replace(' ', '').str.contains(search_no_space, case=False, regex=False)
-    
-    return df[mask].copy()
-
-def process_row(row: pd.Series) -> Optional[Dict[str, str]]:
-    raw_code = clean_text(row.get('欄位_0', ''))
-    raw_zh = clean_text(row.get('欄位_1', ''))
-    raw_en = clean_text(row.get('欄位_2', ''))
-    raw_col3 = clean_text(row.get('欄位_3', ''))
-    
-    if re.search(r'[\u4e00-\u9fff]', raw_code) and not raw_zh:
-        raw_zh = raw_code
-        raw_code = "無/位移"
-    
-    if re.match(r'^[A-Za-z\s\-\.]+$', raw_zh) and not raw_en:
-        raw_en = raw_zh
-    
-    if not raw_zh and not raw_en:
-        return None
-
-    code = raw_code if raw_code and raw_code not in INVALID_VALUES else "無"
-    zh_name = raw_zh if raw_zh and raw_zh not in INVALID_VALUES else "無"
-    en_name = raw_en if raw_en and raw_en not in INVALID_VALUES else "無"
-    sub_item = raw_col3 if is_valid_value(raw_col3) else "無"
-    
-    ref_candidates = []
-    for c_idx in [4, 5, 6, 9]:
-        val = clean_text(row.get(f'欄位_{c_idx}', ''))
-        if is_valid_value(val) and len(val) < 50:
-             ref_candidates.append(val)
-    ref_value = " | ".join(ref_candidates) if ref_candidates else "請參閱臨床意義"
-
-    clinical = extract_clinical_notes(row)
-
-    return {
-        "健保代碼": code,
-        "中文名稱": zh_name,
-        "英文名稱": en_name,
-        "組套細項": sub_item,
-        "參考值": ref_value,
-        "臨床意義": clinical
-    }
-
-# ==================== 主程式 ====================
-def main():
-    st.title("🏥 TCH 檢驗項目查詢系統")
-    
-    # 修改：免責聲明預設收合 (expanded=False)，保持介面清爽
-    with st.expander("⚠️ 重要：請先閱讀免責聲明 (點擊展開)", expanded=False):
-        st.markdown(DISCLAIMER)
-    
-    st.markdown("---")
-    
-    df = load_data()
-    if df.empty:
-        st.error("❌ 資料庫為空，請確認 update_db.py 是否執行成功")
+def show_source(pdf_bytes, index, manifest, context):
+    if st.session_state.get("open_context") != context or "open_page" not in st.session_state:
         return
+    page = st.session_state["open_page"]
+    st.subheader(f"採檢手冊原文　第 {page} / {manifest['pages']} 頁")
+    st.caption("保留原文件版面及頁首；查詢服務由陽明院區檢驗科提供。")
+    st.caption("手機查看寬表時，可下載本頁PDF後放大閱讀。")
+    st.image(page_image(pdf_bytes, page), width="stretch")
+    st.download_button("下載這一頁PDF", one_page_pdf(pdf_bytes, page), file_name=f"採檢手冊_第{page}頁.pdf", mime="application/pdf", key=f"download_{context}_p{page}")
+    with st.expander("原文文字（輔助閱讀）"):
+        st.text_area("本頁擷取文字；表格欄位請以原圖為準", index[page - 1]["text"], height=300, disabled=True, key=f"text_{context}_p{page}")
 
-    st.info(f"📅 資料庫最後更新：{get_db_last_update()} (共 {len(df)} 筆資料)")
-    
-    search_term = st.text_input("🔍 請輸入關鍵字搜尋 (例如: AFP, CBC, 09026)", "")
 
-    if search_term:
-        result_df = search_data(df, search_term)
-        
-        display_rows = []
-        for _, row in result_df.iterrows():
-            processed = process_row(row)
-            if processed:
-                display_rows.append(processed)
-        
-        if not display_rows:
-            st.warning(f"⚠️ 找不到相符資料。請確認關鍵字是否正確。")
-            with st.expander("🔧 開發者除錯：查看原始資料", expanded=False):
-                st.dataframe(result_df)
+def main():
+    try:
+        revision = hashlib.sha256((DATA / "source_manifest.json").read_bytes()).hexdigest()
+        manifest, pdf_bytes, index, quick = get_data(revision)
+    except (OSError, ValueError, KeyError):
+        st.error("查詢資料暫時無法載入，請聯絡檢驗科。")
+        return
+    st.title("陽明院區檢驗科")
+    st.header("採檢與檢驗項目查詢", divider="blue")
+    st.caption("臺北市立聯合醫院　｜　115年採檢手冊　｜　病房與臨床醫療人員適用")
+    if "search_query" not in st.session_state:
+        st.session_state["search_query"] = str(st.query_params.get("q", ""))[:200]
+    st.text_input("檢驗項目、英文縮寫或健保代碼", key="search_query", placeholder="例如：血氨、Ammonia、乳酸、CBC、09037", on_change=update_query, max_chars=200)
+    st.pills("ICU常用項目", ["血液培養", "血液氣體", "血氨", "乳酸", "CBC", "凝血"], key="quick_choice", on_change=choose_shortcut)
+    mode = st.radio("查詢範圍", ["採檢快查", "參考值與臨床意義", "手冊全文"], horizontal=True)
+    query = st.session_state["search_query"].strip()
+    if query:
+        items = find_quick_items(quick, query) if mode == "採檢快查" else []
+        for item in items:
+            with st.container(border=True):
+                st.subheader(item["title"])
+                if item.get("notice"):
+                    st.info(item["notice"])
+                left, right = st.columns(2)
+                with left:
+                    st.markdown("**採檢容器**")
+                    st.write(item["container"])
+                with right:
+                    st.markdown("**採檢量／規格**")
+                    st.write(item["amount"])
+                st.markdown("**保存、送檢與採檢提醒**")
+                for fact in item["facts"]:
+                    st.markdown(f"- {fact}")
+                st.caption(item["source_label"])
+                with st.expander("核對來源"):
+                    source_buttons(item["pages"], item["id"])
+                    show_source(pdf_bytes, index, manifest, f"quick_{item['id']}")
+                    if item.get("supplement_url"):
+                        st.link_button("CDC成人血液培養原始指引（第1–2頁）", item["supplement_url"])
+        category = "reference" if mode == "參考值與臨床意義" else None
+        results = search_pages(index, query, category=category)
+        st.subheader("手冊原文")
+        if mode == "參考值與臨床意義":
+            st.caption("保留原表的年齡、性別、院區、單位及合併儲存格；不把量測不確定度當成參考值。")
+        if not results:
+            st.warning("這個範圍沒有找到相符頁面。可改用英文縮寫、健保代碼，或切換「手冊全文」。")
         else:
-            # 去除重複結果
-            df_display = pd.DataFrame(display_rows)
-            df_display = df_display.drop_duplicates(subset=['健保代碼', '英文名稱', '組套細項'], keep='first')
-            display_rows = df_display.to_dict('records')
-            
-            st.success(f"✅ 找到 {len(display_rows)} 筆結果")
-            for row in display_rows:
-                # 標題格式：中文 | 英文 - 細項
-                title_str = f"📋 {row['中文名稱']} | {row['英文名稱']}"
-                if row['組套細項'] != "無":
-                    title_str += f" - {row['組套細項']}"
-                
-                # 修改：expanded=False，預設結果收合
-                with st.expander(title_str, expanded=False):
-                    c1, c2 = st.columns([1, 1])
-                    with c1:
-                        st.markdown(f"**🔹 代碼：** `{row['健保代碼']}`")
-                        st.markdown(f"**🔹 中文：** {row['中文名稱']}")
-                    with c2:
-                        st.markdown(f"**🔹 英文：** {row['英文名稱']}")
-                        st.markdown(f"**🔹 細項：** {row['組套細項']}")
-                    st.markdown("---")
-                    st.markdown(f"**🔸 參考值：** {row['參考值']}")
-                    st.markdown(f"**🔸 臨床意義：**\n{row['臨床意義']}")
+            st.caption(f"找到 {len(results)} 個相符頁面；按頁面開啟原始表格。")
+            batches = max(1, (len(results) + 7) // 8)
+            batch = st.selectbox("搜尋結果頁", range(1, batches + 1), format_func=lambda x: f"第 {x} / {batches} 組", key=f"batch_{mode}_{query}") if batches > 1 else 1
+            for hit in results[(batch - 1) * 8:batch * 8]:
+                with st.container(border=True):
+                    st.markdown(f"**第 {hit['page']} 頁　{hit['section']}**")
+                    if hit["category"] == "reference":
+                        st.write("參考值、適用族群與臨床意義請查看本頁原表；檢驗效能與量測不確定度另列，不與參考值合併。")
+                    else:
+                        st.write(hit["snippet"])
+                    context = f"hit_{mode}_{hit['page']}"
+                    st.button("開啟這一頁原文", key=context, on_click=open_page, args=(hit["page"], context))
+                    show_source(pdf_bytes, index, manifest, context)
+    else:
+        st.info("輸入關鍵字，或選上方的ICU常用項目。採檢快查可查看容器與送檢提醒；參考值請對照原表的適用條件。")
+    st.divider()
+    with st.expander("手冊版本、資料來源與使用說明"):
+        st.write("服務單位：臺北市立聯合醫院陽明院區檢驗科")
+        st.write(f"主要資料：{manifest['source_name']}（{manifest['pages']}頁）")
+        st.write(f"文件編號：{manifest['document_number']}")
+        st.write("來源檔名標示1150420；不以伺服器檔案時間作為手冊修訂日期。")
+        st.write("原始PDF頁首為中興院區；文件適用範圍列各院區病房及檢驗科。陽明院區耗材規格、作業流程及特殊檢驗要求，依現行核定規定及檢驗科確認。")
+        st.write("採檢快查採用經核對的手冊內容；其他檢驗項目保留完整原頁供查閱，不把不同族群或院區的數字合併。血液培養血量另列CDC指引補充，並未將外部指引冒稱為陽明已核定的規範。")
+        st.download_button("下載完整採檢手冊PDF", pdf_bytes, file_name=manifest["source_name"], mime="application/pdf")
+        st.caption("請勿在搜尋欄輸入病人姓名、病歷號碼或其他個人資料。")
+    st.caption("陽明院區檢驗科　｜　採檢規定如有疑義，請先與檢驗科確認。")
+
 
 if __name__ == "__main__":
     main()
