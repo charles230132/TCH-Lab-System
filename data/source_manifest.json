@@ -7,5 +7,6 @@
   "index_sha256": "099c225e78fb2656fea49c1eb0a6223eb3a0f9deadb2caaedfc03435910e84e8",
   "version_label": "115.05.19",
   "source_header": "陽明院區檢驗科",
-  "service_department": "陽明院區檢驗科"
+  "service_department": "陽明院區檢驗科",
+  "nhi_sha256": "bfed0de6b233f4d64b527dac0331c13fc2cb8557dbaa239342af2e91201f2903"
 }
