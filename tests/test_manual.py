@@ -108,3 +108,34 @@ def test_nhi_lookup_ui_opens_the_correct_original_page():
     app.button(key="nhi_N06").click().run()
     assert not app.exception
     assert any("14 / 105" in x.value for x in app.subheader)
+
+
+def test_last_updated_and_feedback_are_visible():
+    import app as app_module
+    app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
+    captions = " ".join(c.value for c in app.caption)
+    assert f"最新更新日期：{app_module.LAST_UPDATED}" in captions
+    assert app_module.FEEDBACK_PHONE in captions
+    assert any(h.value == "錯誤回報" for h in app.subheader)
+
+
+def test_feedback_url_never_carries_search_text(monkeypatch):
+    from urllib.parse import parse_qs, urlsplit
+    import app as app_module
+    monkeypatch.setattr(app_module, "FEEDBACK_PREFILL", {"page": "entry.2", "version": "entry.3"})
+    monkeypatch.setattr(app_module, "FEEDBACK_FORM_URL", "https://docs.google.com/forms/d/e/TEST/viewform?usp=sf_link#top")
+    parts = urlsplit(app_module.feedback_url(12))
+    params = parse_qs(parts.query)
+    assert parts.path.endswith("/viewform") and parts.fragment == "top"
+    assert params == {"usp": ["pp_url"], "entry.2": ["第12頁"], "entry.3": [app_module.APP_VERSION]}
+    assert "entry.2" not in parse_qs(urlsplit(app_module.feedback_url(None)).query)
+    monkeypatch.setattr(app_module, "FEEDBACK_FORM_URL", "")
+    assert app_module.feedback_url(12) == ""
+
+
+def test_feedback_button_hidden_until_form_is_configured():
+    app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30)
+    app.query_params["q"] = "王小明 1234567"
+    app.run()
+    assert not app.get("link_button")
+    assert any(h.value == "錯誤回報" for h in app.subheader)

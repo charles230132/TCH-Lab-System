@@ -1,5 +1,6 @@
 """Yangming laboratory lookup backed by a versioned source PDF."""
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 import hashlib
 import json
 
@@ -10,7 +11,13 @@ from manual_search import load_index, search_pages, find_quick_items, find_nhi_i
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
-APP_VERSION = "115-NHI-20261118"
+APP_VERSION = "115-NHI-20261119"
+LAST_UPDATED = "115年11月19日"
+FEEDBACK_PHONE = "(02) 2835-3456 轉 6297"
+# Google表單網址與預填欄位代碼（entry.xxxx）；未設定時只顯示電話回報
+# 搜尋欄可能被誤填個資，故不預填搜尋文字，只帶頁碼與網站版本
+FEEDBACK_FORM_URL = ""
+FEEDBACK_PREFILL = {"page": "", "version": ""}
 st.set_page_config(page_title="陽明院區檢驗科｜採檢查詢", page_icon="🔬", layout="wide")
 
 
@@ -87,6 +94,26 @@ def show_source(pdf_bytes, index, manifest, context):
         st.text_area("本頁擷取文字；表格欄位請以原圖為準", index[page - 1]["text"], height=300, disabled=True, key=f"text_{context}_p{page}")
 
 
+def feedback_url(page):
+    if not FEEDBACK_FORM_URL:
+        return ""
+    values = {"page": f"第{page}頁" if page else "", "version": APP_VERSION}
+    parts = urlsplit(FEEDBACK_FORM_URL)
+    params = dict(parse_qsl(parts.query))
+    params["usp"] = "pp_url"
+    params.update({FEEDBACK_PREFILL[k]: v for k, v in values.items() if FEEDBACK_PREFILL.get(k) and v})
+    return urlunsplit(parts._replace(query=urlencode(params)))
+
+
+def show_feedback():
+    st.subheader("錯誤回報")
+    st.caption("發現查詢結果、容器或送檢說明有誤，請回報檢驗科，我們會查證並修正。請勿填寫病人姓名、病歷號碼或其他個人資料。")
+    url = feedback_url(st.session_state.get("open_page"))
+    if url:
+        st.link_button("回報錯誤或建議", url)
+    st.caption(f"電話回報：陽明院區檢驗科 {FEEDBACK_PHONE}")
+
+
 def main():
     try:
         revision = hashlib.sha256((DATA / "source_manifest.json").read_bytes()).hexdigest()
@@ -97,6 +124,7 @@ def main():
     st.title("陽明院區檢驗科")
     st.header("採檢與檢驗項目查詢", divider="blue")
     st.caption("臺北市立聯合醫院　｜　115年採檢手冊　｜　病房與臨床醫療人員適用")
+    st.caption(f"最新更新日期：{LAST_UPDATED}　｜　採檢手冊版本：1150420　｜　網站版本：{APP_VERSION}")
     if "search_query" not in st.session_state:
         st.session_state["search_query"] = str(st.query_params.get("q", ""))[:200]
     st.text_input("檢驗項目、英文縮寫或健保代碼", key="search_query", placeholder="例如：血氨、Ammonia、乳酸、CBC、09037", on_change=update_query, max_chars=200)
@@ -168,6 +196,7 @@ def main():
     else:
         st.info("輸入檢驗名稱或完整健保碼，或選上方的ICU常用項目。健保碼請保留開頭的0；採檢快查可查看容器與送檢提醒。")
     st.divider()
+    show_feedback()
     with st.expander("手冊版本、資料來源與使用說明"):
         st.write("服務單位：臺北市立聯合醫院陽明院區檢驗科")
         st.write(f"主要資料：{manifest['source_name']}（{manifest['pages']}頁）")
@@ -178,7 +207,7 @@ def main():
         st.download_button("下載完整採檢手冊PDF", pdf_bytes, file_name=manifest["source_name"], mime="application/pdf")
         st.caption("請勿在搜尋欄輸入病人姓名、病歷號碼或其他個人資料。")
     st.caption("陽明院區檢驗科　｜　採檢規定如有疑義，請先與檢驗科確認。")
-    st.caption(f"網站版本：健保碼查詢版　{APP_VERSION}")
+    st.caption(f"網站版本：健保碼查詢版　{APP_VERSION}　｜　最新更新日期：{LAST_UPDATED}")
 
 
 if __name__ == "__main__":
