@@ -17,27 +17,27 @@ def test_index_is_the_exact_approved_pdf():
     source = ROOT / "data" / manifest["file"]
     assert hashlib.sha256(source.read_bytes()).hexdigest() == manifest["sha256"]
     with fitz.open(source) as doc:
-        assert len(doc) == len(INDEX) == 105
+        assert len(doc) == len(INDEX) == 89
         for item, page in zip(INDEX, doc):
             assert item["text"] == page.get_text()
 
 
 def test_aliases_and_fullwidth_code_find_the_right_collection_page():
     for query in ["血氨", "Ammonia", "NH3", "０９０３７"]:
-        assert 12 in [r["page"] for r in search_pages(INDEX, query)]
+        assert 10 in [r["page"] for r in search_pages(INDEX, query)]
         assert find_quick_items(QUICK, query)[0]["id"] == "ammonia"
-    assert 13 in [r["page"] for r in search_pages(INDEX, "Lactic acid")]
-    assert 14 in [r["page"] for r in search_pages(INDEX, "CBC")]
-    assert 22 not in [r["page"] for r in search_pages(INDEX, "Ammonia")]
+    assert 11 in [r["page"] for r in search_pages(INDEX, "Lactic acid")]
+    assert 11 in [r["page"] for r in search_pages(INDEX, "CBC")]
+    assert 40 not in [r["page"] for r in search_pages(INDEX, "Ammonia")]  # 氨基酸 page
     assert search_pages(INDEX, "[") == []
     assert search_pages(INDEX, "") == []
 
 
 def test_reference_rows_are_never_collapsed_or_relabelled():
     matches = search_pages(INDEX, "CBC", category="reference")
-    assert {77, 78, 79}.issubset({m["page"] for m in matches})
-    assert 80 in {m["page"] for m in search_pages(INDEX, "08008", category="reference")}
-    page = INDEX[76]["text"]
+    assert {32, 33, 34}.issubset({m["page"] for m in matches})
+    assert 34 in {m["page"] for m in search_pages(INDEX, "08008", category="reference")}
+    page = INDEX[32]["text"]
     assert "陽明" in page and "仁愛" in page and "中興" in page
     assert "0天-14天" in page.replace(" ", "")
     assert all(m["category"] == "reference" for m in matches)
@@ -48,9 +48,19 @@ def test_clinical_quick_facts_have_verified_claims_and_valid_pages():
     for item in QUICK:
         assert item["claim_ids"]
         assert set(item["claim_ids"]).issubset(evidence)
-        assert all(1 <= page <= 105 for page in item["pages"])
+        assert all(1 <= page <= 89 for page in item["pages"])
     culture = next(x for x in QUICK if x["id"] == "blood_culture")
     assert "CDC" in culture["notice"] and "10 mL" in culture["amount"]
+    assert "C23" not in culture["claim_ids"]  # 陽明手冊未列去抗生素血瓶
+    coag = next(x for x in QUICK if x["id"] == "coagulation")
+    assert "2 mL" in coag["amount"] and "2.7" in coag["amount"]
+
+
+def test_source_is_the_yangming_manual():
+    manifest = json.loads((ROOT / "data/source_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["document_number"] == "TCHYM-QP-7.2-2-(1)"
+    assert manifest["source_header"] == "陽明院區檢驗科"
+    assert "本院區各病房及檢驗室" in INDEX[1]["text"].replace(" ", "")
 
 
 def test_app_search_and_source_page_render():
@@ -60,9 +70,9 @@ def test_app_search_and_source_page_render():
     assert not app.exception
     assert app.text_input[0].value == "血氨"
     assert any("Ammonia" in x.value for x in app.subheader)
-    app.button(key="ammonia_p12").click().run()
+    app.button(key="ammonia_p10").click().run()
     assert not app.exception
-    assert any("12 / 105" in x.value for x in app.subheader)
+    assert any("10 / 89" in x.value for x in app.subheader)
     app.radio[0].set_value("參考值與臨床意義").run()
     assert not app.exception
 
@@ -107,7 +117,7 @@ def test_nhi_lookup_ui_opens_the_correct_original_page():
     assert not any("08014" in value for value in texts)
     app.button(key="nhi_N06").click().run()
     assert not app.exception
-    assert any("14 / 105" in x.value for x in app.subheader)
+    assert any("11 / 89" in x.value for x in app.subheader)
 
 
 def test_last_updated_and_feedback_are_visible():

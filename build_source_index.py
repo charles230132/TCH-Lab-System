@@ -19,18 +19,18 @@ def build(pdf_path, output):
     previous_topic = ""
     with fitz.open(target) as doc:
         for number, page in enumerate(doc, 1):
-            if 12 <= number <= 31:
+            if 10 <= number <= 25:
                 category, section = "collection", "採檢一覽表"
-            elif number == 32 or 52 <= number <= 104:
+            elif 26 <= number <= 59:
                 category, section = "reference", "參考值、量測不確定度與臨床意義"
-            elif 8 <= number <= 11:
+            elif 7 <= number <= 9:
                 category, section = "containers", "採檢容器與順序"
-            elif number == 105:
+            elif number == 71:
                 category, section = "contacts", "諮詢電話一覽表"
             else:
                 category, section = "instructions", "採檢注意事項與附件"
             topics = []
-            if 55 <= number <= 104:
+            if 27 <= number <= 59:
                 for table in page.find_tables().tables:
                     rows = table.extract()
                     # Only index literal identifiers/names. Never infer reference
@@ -48,7 +48,7 @@ def build(pdf_path, output):
                                 topics.append(topic)
             pages.append(dict(page=number, category=category, section=section, text=page.get_text(), topics=list(dict.fromkeys(topics))))
     (output / "manual_pages.json").write_text(json.dumps(pages, ensure_ascii=False), encoding="utf-8")
-    manifest = dict(file=target.name, source_name=source.name, document_number="TCH-QP-7.2-1-(1)", pages=len(pages), sha256=hashlib.sha256(target.read_bytes()).hexdigest(), index_sha256=hashlib.sha256((output / "manual_pages.json").read_bytes()).hexdigest(), version_label="提供檔名1150420", source_header="中興院區檢驗科", service_department="陽明院區檢驗科")
+    manifest = dict(file=target.name, source_name=source.name, document_number="TCHYM-QP-7.2-2-(1)", pages=len(pages), sha256=hashlib.sha256(target.read_bytes()).hexdigest(), index_sha256=hashlib.sha256((output / "manual_pages.json").read_bytes()).hexdigest(), version_label="115.05.19", source_header="陽明院區檢驗科", service_department="陽明院區檢驗科")
     (output / "source_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return manifest
 
