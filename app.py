@@ -6,6 +6,7 @@ import json
 
 import fitz
 import streamlit as st
+import streamlit.components.v1 as components
 
 from manual_search import load_index, search_pages, find_quick_items, find_nhi_items, normalized
 
@@ -18,6 +19,7 @@ FEEDBACK_PHONE = "(02) 2835-3456 轉 6297"
 # 搜尋欄可能被誤填個資，故不預填搜尋文字，只帶頁碼與網站版本
 FEEDBACK_FORM_URL = ""
 FEEDBACK_PREFILL = {"page": "", "version": ""}
+QUICK_LABELS = ["血液培養", "血液氣體", "血氨", "乳酸", "CBC", "凝血"]
 st.set_page_config(page_title="陽明院區檢驗科｜採檢查詢", page_icon="🔬", layout="wide")
 
 
@@ -101,17 +103,19 @@ def feedback_url(page):
     parts = urlsplit(FEEDBACK_FORM_URL)
     params = dict(parse_qsl(parts.query))
     params["usp"] = "pp_url"
+    params["embedded"] = "true"
     params.update({FEEDBACK_PREFILL[k]: v for k, v in values.items() if FEEDBACK_PREFILL.get(k) and v})
     return urlunsplit(parts._replace(query=urlencode(params)))
 
 
 def show_feedback():
     st.subheader("錯誤回報")
-    st.caption("發現查詢結果、容器或送檢說明有誤，請回報檢驗科，我們會查證並修正。請勿填寫病人姓名、病歷號碼或其他個人資料。")
+    st.caption("發現查詢結果、容器或送檢說明有誤，請在下方填寫送出，檢驗科會查證並修正。請勿填寫病人姓名、病歷號碼或其他個人資料。")
     url = feedback_url(st.session_state.get("open_page"))
     if url:
-        st.link_button("回報錯誤或建議", url)
-    st.caption(f"電話回報：陽明院區檢驗科 {FEEDBACK_PHONE}")
+        components.iframe(url, height=1100, scrolling=True)
+    else:
+        st.caption(f"線上回報表單建置中；暫請電話回報：陽明院區檢驗科 {FEEDBACK_PHONE}")
 
 
 def main():
@@ -121,15 +125,16 @@ def main():
     except (OSError, ValueError, KeyError):
         st.error("查詢資料暫時無法載入，請聯絡檢驗科。")
         return
-    st.title("陽明院區檢驗科")
-    st.header("採檢與檢驗項目查詢", divider="blue")
-    st.caption("臺北市立聯合醫院　｜　陽明院區採檢手冊 TCHYM-QP-7.2-2-(1)　｜　病房與臨床醫療人員適用")
+    st.markdown("## 陽明院區檢驗科　採檢查詢")
+    st.caption("臺北市立聯合醫院　｜　病房與臨床醫療人員適用")
     st.info(f"📅 **最新更新：{LAST_UPDATED}**　｜　依據：陽明院區採檢手冊 115.05.19 版")
-    st.caption(f"網站版本：{APP_VERSION}")
     if "search_query" not in st.session_state:
         st.session_state["search_query"] = str(st.query_params.get("q", ""))[:200]
-    st.text_input("檢驗項目、英文縮寫或健保代碼", key="search_query", placeholder="例如：血氨、Ammonia、乳酸、CBC、09037", on_change=update_query, max_chars=200)
-    st.pills("ICU常用項目", ["血液培養", "血液氣體", "血氨", "乳酸", "CBC", "凝血"], key="quick_choice", on_change=choose_shortcut)
+    st.text_input("🔍 檢驗項目、英文縮寫或健保代碼", key="search_query", placeholder="例如：血氨、Ammonia、乳酸、CBC、09037", on_change=update_query, max_chars=200)
+    st.markdown("**ICU 常用**")
+    with st.container(horizontal=True, gap="small"):
+        for label in QUICK_LABELS:
+            st.button(label, key=f"quick_btn_{label}", on_click=choose_query, args=(label,), width=108)
     mode = st.radio("查詢範圍", ["採檢快查", "健保碼查詢", "參考值與臨床意義", "手冊全文"], horizontal=True)
     query = st.session_state["search_query"].strip()
     if query:

@@ -139,7 +139,7 @@ def test_feedback_url_never_carries_search_text(monkeypatch):
     parts = urlsplit(app_module.feedback_url(12))
     params = parse_qs(parts.query)
     assert parts.path.endswith("/viewform") and parts.fragment == "top"
-    assert params == {"usp": ["pp_url"], "entry.2": ["第12頁"], "entry.3": [app_module.APP_VERSION]}
+    assert params == {"usp": ["pp_url"], "embedded": ["true"], "entry.2": ["第12頁"], "entry.3": [app_module.APP_VERSION]}
     assert "entry.2" not in parse_qs(urlsplit(app_module.feedback_url(None)).query)
     monkeypatch.setattr(app_module, "FEEDBACK_FORM_URL", "")
     assert app_module.feedback_url(12) == ""
@@ -151,3 +151,11 @@ def test_feedback_button_hidden_until_form_is_configured():
     app.run()
     assert not app.get("link_button")
     assert any(h.value == "錯誤回報" for h in app.subheader)
+
+
+def test_quick_buttons_fill_search():
+    app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
+    app.button(key="quick_btn_血氨").click().run()
+    assert not app.exception
+    assert app.text_input[0].value == "血氨"
+    assert any("Ammonia" in x.value for x in app.subheader)
