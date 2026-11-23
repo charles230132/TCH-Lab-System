@@ -13,7 +13,7 @@ from manual_search import load_index, search_pages, find_quick_items, find_nhi_i
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 APP_VERSION = "115-YM-20261123"
-LAST_UPDATED = "115年11月23日 11:40"
+LAST_UPDATED = "115年11月23日 13:34"
 FEEDBACK_PHONE = "(02) 2835-3456 轉 6297"
 # Google表單網址與預填欄位代碼（entry.xxxx）；未設定時只顯示電話回報
 # 搜尋欄可能被誤填個資，故不預填搜尋文字，只帶頁碼與網站版本
