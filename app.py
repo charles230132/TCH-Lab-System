@@ -12,7 +12,7 @@ from manual_search import load_index, search_pages, find_quick_items, find_nhi_i
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 APP_VERSION = "115-YM-20261123"
-LAST_UPDATED = "115年11月23日"
+LAST_UPDATED = "115年11月23日 11:40"
 FEEDBACK_PHONE = "(02) 2835-3456 轉 6297"
 # Google表單網址與預填欄位代碼（entry.xxxx）；未設定時只顯示電話回報
 # 搜尋欄可能被誤填個資，故不預填搜尋文字，只帶頁碼與網站版本
@@ -124,7 +124,8 @@ def main():
     st.title("陽明院區檢驗科")
     st.header("採檢與檢驗項目查詢", divider="blue")
     st.caption("臺北市立聯合醫院　｜　陽明院區採檢手冊 TCHYM-QP-7.2-2-(1)　｜　病房與臨床醫療人員適用")
-    st.caption(f"最新更新日期：{LAST_UPDATED}　｜　採檢手冊版本：115.05.19　｜　網站版本：{APP_VERSION}")
+    st.info(f"📅 **最新更新：{LAST_UPDATED}**　｜　依據：陽明院區採檢手冊 115.05.19 版")
+    st.caption(f"網站版本：{APP_VERSION}")
     if "search_query" not in st.session_state:
         st.session_state["search_query"] = str(st.query_params.get("q", ""))[:200]
     st.text_input("檢驗項目、英文縮寫或健保代碼", key="search_query", placeholder="例如：血氨、Ammonia、乳酸、CBC、09037", on_change=update_query, max_chars=200)

@@ -125,6 +125,8 @@ def test_last_updated_and_feedback_are_visible():
     app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
     captions = " ".join(c.value for c in app.caption)
     assert f"最新更新日期：{app_module.LAST_UPDATED}" in captions
+    assert any(f"最新更新：{app_module.LAST_UPDATED}" in x.value for x in app.info)
+    assert ":" in app_module.LAST_UPDATED  # 含時間
     assert app_module.FEEDBACK_PHONE in captions
     assert any(h.value == "錯誤回報" for h in app.subheader)
 
